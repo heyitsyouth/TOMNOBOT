@@ -62,8 +62,8 @@ async def save_screenshot(message: types.Message, state: FSMContext):
         f.write(f"{user_id}|{message.from_user.full_name}|{message.from_user.username}|{file_name}\n")
 
     # Отправляем треки (они должны лежать в папке бота)
-    track1 = FSInputFile("track1.mp3")
-    track2 = FSInputFile("track2.mp3")
+    track1 = FSInputFile("для меня беспредел.mp3")
+    track2 = FSInputFile("солнце пахнет зимой.mp3")
     await message.answer_audio(track1, caption="сексуальный трек один")
     await message.answer_audio(track2, caption="грустный сексуальный трек два")
     await message.answer(
