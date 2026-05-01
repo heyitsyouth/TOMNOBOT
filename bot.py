@@ -27,24 +27,27 @@ class PresaveState(StatesGroup):
 
 # Клавиатура
 main_kb = ReplyKeyboardMarkup(
-    keyboard=[[KeyboardButton(text="✅ я сделал ваш мяучий пресейв")]],
+    keyboard=[[KeyboardButton(text="✅ сделать пресейв и получить награды")]],
     resize_keyboard=True
 )
 
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message):
     await message.answer(
-        "приветы! ты на пути к крутым наградам за то, что ты крутой, а еще в честь EP «ТОМНО».\n\n"
-        "1️⃣ сначала сделай пресейв на bandlink: https://band.link/tomno\n"
-        "2️⃣ после этого нажми кнопку ниже и пришли скриншот подтверждения (можно с телефона или пк!)\n\n"
+        "приветы! ты на пути к крутым призам за то, что ты крутой, а еще в честь EP «ТОМНО».\n\n"
         "🎁 за это получишь два полных трека и участвуешь в розыгрыше 1000 рубликов",
         reply_markup=main_kb
     )
 
-@dp.message(F.text == "✅ я сделал ваш мяучий пресейв")
+@dp.message(F.text == "✅ сделать пресейв и получить награды")
 async def ask_screenshot(message: types.Message, state: FSMContext):
     await state.set_state(PresaveState.waiting_screenshot)
-    await message.answer("отправь скриншот, который подтверждает, что ты перешел по ссылке пресейва (так надо бро)", reply_markup=types.ReplyKeyboardRemove())
+    await message.answer(
+		"1️⃣ сделай пресейв по ссылке band.link/tomno (нужно отключить VPN!)\n"
+		"2️⃣ как сделал:а, отправь скриншот, где видно, что пресейвы есть\n\n"
+		"жду скриншот следующим соо: после него ты автоматом получишь треки и будешь участвовать в розыгрыше!",
+		reply_markup=types.ReplyKeyboardRemove()
+	)
 
 @dp.message(PresaveState.waiting_screenshot, F.photo)
 async def save_screenshot(message: types.Message, state: FSMContext):
@@ -62,8 +65,8 @@ async def save_screenshot(message: types.Message, state: FSMContext):
         f.write(f"{user_id}|{message.from_user.full_name}|{message.from_user.username}|{file_name}\n")
 
     # Отправляем треки (они должны лежать в папке бота)
-    track1 = FSInputFile("для меня беспредел.mp3")
-    track2 = FSInputFile("солнце пахнет зимой.mp3")
+    track1 = FSInputFile("для меня беспредел — sunday sunrise.mp3")
+    track2 = FSInputFile("солнце пахнет зимой — sunday sunrise.mp3")
     await message.answer_audio(track1, caption="сексуальный трек один")
     await message.answer_audio(track2, caption="грустный сексуальный трек два")
     await message.answer(
@@ -89,11 +92,29 @@ async def show_participants(message: types.Message):
     if not lines:
         await message.answer("пока нет участников")
         return
-    participants = []
+
+    # Отправим общее количество
+    await message.answer(f"📋 Всего участников: {len(lines)}")
+
+    # Отправим каждого участника с его скриншотом
     for line in lines:
         parts = line.strip().split('|')
-        participants.append(f"{parts[1]} (@{parts[2]})")
-    await message.answer("\n".join(participants[:30]))  # лимит 30
+        if len(parts) < 4:
+            continue
+        user_id, full_name, username, screenshot_filename = parts[0], parts[1], parts[2], parts[3]
+        screenshot_path = os.path.join(SCREENSHOT_DIR, screenshot_filename)
+        caption = (
+            f"👤 {full_name}\n"
+            f"🆔 @{username}\n"
+            f"📸 {screenshot_filename}"
+        )
+        if os.path.exists(screenshot_path):
+            photo = FSInputFile(screenshot_path)
+            await message.answer_photo(photo, caption=caption)
+        else:
+            await message.answer(f"{caption}\n⚠️ Файл скриншота не найден")
+        # Небольшая пауза, чтобы не спамить слишком быстро
+        await asyncio.sleep(0.5)
 
 async def main():
     await dp.start_polling(bot)
